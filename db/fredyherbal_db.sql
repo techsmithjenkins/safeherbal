@@ -77,20 +77,17 @@ CREATE TABLE IF NOT EXISTS testimonials (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 
--- Table: content_pages
+-- Table: site_pages
 -- Stores dynamic content for various pages and sections of the website.
 
-CREATE TABLE content_pages (
-    id INT(11) NOT NULL AUTO_INCREMENT,
-    page VARCHAR(50) NOT NULL,
-    section VARCHAR(100) NOT NULL,
-    caption VARCHAR(255) NOT NULL,
-    content TEXT NOT NULL,
-    excerpt TEXT NULL,
-    is_active TINYINT(1) DEFAULT 1,
-    last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    INDEX idx_page (page),
-    INDEX idx_section (section)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+CREATE TABLE site_content (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    page VARCHAR(100) NOT NULL,       -- e.g. 'welcome', 'aboutus', 'safe_cards'
+    caption VARCHAR(150) NOT NULL,    -- machine-friendly key (e.g. 'mission', 'card_1')
+    header VARCHAR(255) DEFAULT NULL, -- human-friendly title (e.g. 'Our Mission')
+    content TEXT NOT NULL,            -- actual HTML/text content
+    excerpt TEXT DEFAULT NULL,      -- short summary or excerpt
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);

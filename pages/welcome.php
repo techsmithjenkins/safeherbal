@@ -4,36 +4,36 @@ $pageTitle = "Welcome";
 include_once "../config/db_connect.php";
 
 // Function to fetch content with defaults and safe HTML rendering
-function getWelcomeContent($conn, $page, $section, $caption, $defaultContent, $defaultExcerpt = null)
+function getWelcomeContent($conn, $page, $caption, $defaultHeader = null, $defaultContent = null, $defaultExcerpt = null)
 {
     try {
-        $stmt = $conn->prepare("SELECT content, excerpt FROM site_content WHERE page = ? AND section = ? AND caption = ? LIMIT 1");
-        $stmt->bind_param("sss", $page, $section, $caption);
+        $stmt = $conn->prepare("SELECT header, content, excerpt FROM site_content WHERE page = ? AND caption = ? LIMIT 1");
+        $stmt->bind_param("ss", $page, $caption);
         $stmt->execute();
         $result = $stmt->get_result();
         $row = $result->fetch_assoc();
         $stmt->close();
 
-        if ($row) {
+        if ($row && ($row['header'] !== null || $row['content'] !== '' || $row['excerpt'] !== null)) {
             // Sanitize database content to prevent XSS
             return [
-                'content' => htmlspecialchars($row['content'], ENT_QUOTES, 'UTF-8'),
-                'excerpt' => $row['excerpt'] ? htmlspecialchars($row['excerpt'], ENT_QUOTES, 'UTF-8') : $defaultExcerpt
+                'header' => $row['header'] !== null ? htmlspecialchars($row['header'], ENT_QUOTES, 'UTF-8') : $defaultHeader,
+                'content' => $row['content'] !== '' ? htmlspecialchars($row['content'], ENT_QUOTES, 'UTF-8') : $defaultContent,
+                'excerpt' => $row['excerpt'] !== null ? htmlspecialchars($row['excerpt'], ENT_QUOTES, 'UTF-8') : $defaultExcerpt
             ];
         }
-        // Use default content as-is (trusted HTML)
-        return ['content' => $defaultContent, 'excerpt' => $defaultExcerpt];
+        // Use default content as-is (trusted HTML) if no entry
+        return ['header' => $defaultHeader, 'content' => $defaultContent, 'excerpt' => $defaultExcerpt];
     } catch (Exception $e) {
         error_log("Error fetching content: " . $e->getMessage());
-        // Use default content as-is (trusted HTML) on error
-        return ['content' => $defaultContent, 'excerpt' => $defaultExcerpt];
+        return ['header' => $defaultHeader, 'content' => $defaultContent, 'excerpt' => $defaultExcerpt];
     }
 }
 
-// Fetch welcome section content
-$welcomeContent = getWelcomeContent($conn, 'welcome', 'welcome_section', 'caption', 'Welcome!');
-$welcomeMessage = getWelcomeContent($conn, 'welcome', 'welcome_section', 'message', 'This is the official website of <span class="font-bold text-secondary">Fredy Herbal</span><br>We are a Herbal Medicine Treatment Company registered in Ghana as <span class="font-semibold text-green-700">AGBENYEGA HERBAL CONCEPT</span> since 2013.');
-$welcomeExcerpt = getWelcomeContent($conn, 'welcome', 'welcome_section', 'excerpt', 'We target the root cause, go beyond the cure, and restore your body system.');
+// Fetch welcome section content using caption 'welcome' for all fields
+$welcomeContent = getWelcomeContent($conn, 'welcome', 'welcome', 'Welcome!', null, null);
+$welcomeMessage = getWelcomeContent($conn, 'welcome', 'welcome', null, 'This is the official website of <span class="font-bold text-secondary">Fredy Herbal</span><br>We are a Herbal Medicine Treatment Company registered in Ghana as <span class="font-semibold text-green-700">AGBENYEGA HERBAL CONCEPT</span> since 2013.', null);
+$welcomeExcerpt = getWelcomeContent($conn, 'welcome', 'welcome', null, null, 'We target the root cause, go beyond the cure, and restore your body system.');
 
 // Fetch welcome image
 $imageCaption = "welcome";
@@ -43,7 +43,7 @@ try {
     $stmt_image->execute();
     $result_image = $stmt_image->get_result();
     $galleryImage = $result_image->fetch_assoc();
-    $imageUrl = $galleryImage ? "../uploads/" . htmlspecialchars($galleryImage['image_url']) : "../assets/fred.jpg";
+    $imageUrl = $galleryImage ? "../uploads/" . htmlspecialchars($galleryImage['image_url'], ENT_QUOTES, 'UTF-8') : "../assets/welcome.jpg";
     $stmt_image->close();
 } catch (Exception $e) {
     error_log("Error fetching image: " . $e->getMessage());
@@ -631,7 +631,7 @@ try {
                 <!-- Logo top left -->
                 <div class="flex items-center">
                     <span class="p-2 rounded-md bg-white cursor-pointer">
-                        <a class="flex items-center text-gray-900">
+                        <a class="flex items-center text-gray-900" href="../pages/homepage.php">
                             <p class="ml-2 text-2xl font-extrabold" style="color: #01932f;font-family:Arial;">FREDY
                                 HERBAL</p>
                         </a>
@@ -641,15 +641,15 @@ try {
                 <nav class="hidden md:flex flex-wrap justify-center gap-1 md:gap-0">
                     <a href="../pages/homepage.php" class="nav-link text-white font-bold text-sm md:text-base">ABOUT
                         US</a>
-                    <a href="../pages/homepage.php  #services"
+                    <a href="../pages/homepage.php #services"
                         class="nav-link text-white font-bold text-sm md:text-base">OUR SERVICES</a>
-                    <a href="../pages/homepage.php  #edge"
+                    <a href="../pages/homepage.php #edge"
                         class="nav-link text-white font-bold text-sm md:text-base">OUR UNIQUE EDGE</a>
-                    <a href="../pages/homepage.php  #testimonials"
+                    <a href="../pages/homepage.php #testimonials"
                         class="nav-link text-white font-bold text-sm md:text-base">TESTIMONIALS</a>
-                    <a href="../pages/homepage.php  #updates"
+                    <a href="../pages/homepage.php #updates"
                         class="nav-link text-white font-bold text-sm md:text-base">RECENT UPDATES</a>
-                    <a href="../pages/homepage.php  #contact"
+                    <a href="../pages/homepage.php #contact"
                         class="nav-link text-white font-bold text-sm md:text-base">CONTACT US</a>
                 </nav>
                 <!-- Mobile Hamburger top right -->
@@ -663,15 +663,15 @@ try {
             class="absolute left-0 top-full w-full bg-deepBlue z-[2000] flex flex-col items-center py-4 transition-all duration-300 ease-in-out invisible opacity-0 rounded-b-2xl shadow-lg md:hidden">
             <nav class="flex flex-col gap-2 text-center w-full px-6">
                 <a href="../pages/homepage.php #about" class="nav-link text-white font-bold text-lg py-2">ABOUT US</a>
-                <a href="../pages/homepage.php  #services" class="nav-link text-white font-bold text-lg py-2">OUR
+                <a href="../pages/homepage.php #services" class="nav-link text-white font-bold text-lg py-2">OUR
                     SERVICES</a>
-                <a href="../pages/homepage.php  #edge" class="nav-link text-white font-bold text-lg py-2">OUR UNIQUE
+                <a href="../pages/homepage.php #edge" class="nav-link text-white font-bold text-lg py-2">OUR UNIQUE
                     EDGE</a>
-                <a href="../pages/homepage.php  #testimonials"
+                <a href="../pages/homepage.php #testimonials"
                     class="nav-link text-white font-bold text-lg py-2">TESTIMONIALS</a>
-                <a href="../pages/homepage.php  #updates" class="nav-link text-white font-bold text-lg py-2">RECENT
+                <a href="../pages/homepage.php #updates" class="nav-link text-white font-bold text-lg py-2">RECENT
                     UPDATES</a>
-                <a href="../pages/homepage.php  #contact" class="nav-link text-white font-bold text-lg py-2">CONTACT
+                <a href="../pages/homepage.php #contact" class="nav-link text-white font-bold text-lg py-2">CONTACT
                     US</a>
             </nav>
         </div>
@@ -733,11 +733,11 @@ try {
                 <!-- Left: Content -->
                 <div class="w-full lg:w-1/2 flex flex-col justify-center lg:pr-12 relative z-10"
                     style="font-family: 'Poppins', Arial, Helvetica, sans-serif;">
-                    <h1 class="text-7xl md:text-8xl font-times font-bold mb-4 text-primary animate-on-scroll hero-title"
+                    <h1 class="text-7xl md:text-8xl font-times font-bold mb-4 text-primary animate-on-scroll"
                         style="animation-delay: 0.1s">
-                        <?php echo $welcomeContent['content']; ?>
+                        <?php echo $welcomeContent['header']; ?>
                     </h1>
-                    <p class="text-xl md:text-2xl mb-4 leading-relaxed animate-on-scroll hero-subtext text-gray-800 p-2"
+                    <p class="text-xl md:text-2xl mb-4 leading-relaxed animate-on-scroll text-gray-800 p-2"
                         style="animation-delay: 0.3s">
                         <?php echo nl2br($welcomeMessage['content']); ?>
                     </p>
@@ -754,8 +754,8 @@ try {
                         </p>
                     </div>
                     <p class="text-xl md:text-2xl lg:text-3xl mb-4 text-blue-700 leading-relaxed animate-on-scroll"
-                        style="animation-delay: 0.7s; color:#0120bb">
-                        <?php echo nl2br($welcomeExcerpt['content']); ?>
+                        style="animation-delay: 0.7s">
+                        <?php echo nl2br($welcomeExcerpt['excerpt']); ?>
                     </p>
                     <div class="flex flex-wrap gap-4 animate-on-scroll" style="animation-delay: 0.9s">
                         <a href="../pages/homepage.php"
@@ -875,7 +875,6 @@ try {
         width: 100%;
     }
 </style>
-
 
     <script>(function () { function c() { var b = a.contentDocument || a.contentWindow.document; if (b) { var d = b.createElement('script'); d.innerHTML = "window.__CF$cv$params={r:'97b6cbeefd541df8',t:'MTc1NzI1NDMwMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);"; b.getElementsByTagName('head')[0].appendChild(d) } } if (document.body) { var a = document.createElement('iframe'); a.height = 1; a.width = 1; a.style.position = 'absolute'; a.style.top = 0; a.style.left = 0; a.style.border = 'none'; a.style.visibility = 'hidden'; document.body.appendChild(a); if ('loading' !== document.readyState) c(); else if (window.addEventListener) document.addEventListener('DOMContentLoaded', c); else { var e = document.onreadystatechange || function () { }; document.onreadystatechange = function (b) { e(b); 'loading' !== document.readyState && (document.onreadystatechange = e, c()) } } } })();</script>
 </body>

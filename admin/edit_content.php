@@ -7,83 +7,123 @@ if (!isset($_SESSION["admin_id"])) {
 
 require_once "../config/db_connect.php";
 
-// Handle save or update
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["content"]) && isset($_POST["section"])) {
-    $section = $conn->real_escape_string($_POST["section"]);
-    $caption = $conn->real_escape_string($_POST["caption"]);
-    $content = $conn->real_escape_string($_POST["content"]);
-    $excerpt = isset($_POST["excerpt"]) ? $conn->real_escape_string($_POST["excerpt"]) : null;
-    $page = $conn->real_escape_string($_POST["page"]);
-    $isActive = isset($_POST["is_active"]) ? 1 : 0;
+// Map pages to default captions
+$captionMap = [
+    "welcome" => "welcome",
+    "about" => "about",
+    "safe_cards" => "cards",
+    "profile" => "profile"
+];
 
-    // Check if entry exists
-    $checkSql = "SELECT id, is_active FROM content_pages WHERE page = ? AND section = ? AND caption = ? LIMIT 1";
-    $checkStmt = $conn->prepare($checkSql);
-    $checkStmt->bind_param("sss", $page, $section, $caption);
-    $checkStmt->execute();
-    $result = $checkStmt->get_result();
-    $existing = $result->fetch_assoc();
-    $checkStmt->close();
+// Pagination setup
+$limit = 10;
+$page = isset($_GET['page_num']) ? (int)$_GET['page_num'] : 1;
+$offset = ($page - 1) * $limit;
 
-    if ($existing) {
-        $sql = "UPDATE content_pages SET content = ?, excerpt = ?, is_active = ?, last_updated = CURRENT_TIMESTAMP WHERE id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("ssii", $content, $excerpt, $isActive, $existing['id']);
-    } else {
-        $sql = "INSERT INTO content_pages (page, section, caption, content, excerpt, is_active) VALUES (?, ?, ?, ?, ?, ?)";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("sssssi", $page, $section, $caption, $content, $excerpt, $isActive);
-    }
-    if ($stmt === false) {
-        die("Prepare failed: " . $conn->error);
-    }
-    $success = $stmt->execute();
-    $stmt->close();
-
-    echo "<script>showToast('" . ($success ? 'Content saved successfully!' : 'Save failed. Please try again.') . "');</script>";
-    exit();
-}
-
-// Handle delete (soft delete by setting is_active to 0)
-if (isset($_GET['delete']) && isset($_GET['id'])) {
-    $id = $conn->real_escape_string($_GET['id']);
-    $sql = "UPDATE content_pages SET is_active = 0, last_updated = CURRENT_TIMESTAMP WHERE id = ?";
+// Handle delete (hard delete)
+if (isset($_GET['delete'], $_GET['id'])) {
+    $id = (int)$_GET['id'];
+    $sql = "DELETE FROM site_content WHERE id = ?";
     $stmt = $conn->prepare($sql);
-    if ($stmt === false) {
-        die("Prepare failed: " . $conn->error);
-    }
     $stmt->bind_param("i", $id);
-    $success = $stmt->execute();
+    $stmt->execute();
     $stmt->close();
-    echo "<script>showToast('" . ($success ? 'Content deactivated successfully!' : 'Deactivation failed. Please try again.') . "');</script>";
+    header("Location: ?page=" . $_GET['page']);
     exit();
 }
 
-// Fetch content from database
-$showInactive = isset($_GET['show_inactive']) && $_GET['show_inactive'] == 1;
-$whereClause = $showInactive ? "WHERE is_active IN (0, 1)" : "WHERE is_active = 1";
-$result = $conn->query("SELECT * FROM content_pages $whereClause ORDER BY page, section, last_updated DESC");
-$pageContent = [];
-$latestEntries = [];
-while ($row = $result->fetch_assoc()) {
-    $key = $row['page'] . '|' . $row['section'] . '|' . $row['caption'];
-    if (!isset($latestEntries[$key]) || $row['last_updated'] > $latestEntries[$key]['last_updated']) {
-        $pageContent[$row['page']][$row['section']][$row['caption']] = $row;
-        $latestEntries[$key] = $row;
+// Handle save (insert or update)
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["content"], $_POST["caption"], $_POST["page"])) {
+    $page = $conn->real_escape_string($_POST["page"]);
+    $caption = $conn->real_escape_string($_POST["caption"]);
+    $header = $conn->real_escape_string($_POST["header"]);
+    $content = $conn->real_escape_string($_POST["content"]);
+    $excerpt = $conn->real_escape_string($_POST["excerpt"] ?? '');
+    $edit_id = isset($_POST["edit_id"]) ? (int)$_POST["edit_id"] : 0;
+    
+    if (empty($header) || empty($content)) {
+        die("Header and content are required.");
     }
+    // Temporarily disable is_active until column is added
+    $isActive = 1; // Default to active until DB supports it
+
+    // Check if record exists for this page/caption to decide insert or update
+    $checkStmt = $conn->prepare("SELECT id FROM site_content WHERE page = ? AND caption = ? LIMIT 1");
+    $checkStmt->bind_param("ss", $page, $caption);
+    $checkStmt->execute();
+    $checkResult = $checkStmt->get_result();
+    $existingId = $checkResult->fetch_assoc();
+
+    if ($existingId && $edit_id == 0) {
+        $edit_id = $existingId['id']; // Use existing ID for update
+    }
+
+    if ($edit_id > 0) {
+        // Update existing content
+        $sql = "UPDATE site_content SET header = ?, content = ?, excerpt = ? WHERE id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("sssi", $header, $content, $excerpt, $edit_id);
+    } else {
+        // Insert new content (should be unique due to constraint)
+        $sql = "INSERT INTO site_content (page, caption, header, content, excerpt) VALUES (?, ?, ?, ?, ?)";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("sssss", $page, $caption, $header, $content, $excerpt);
+    }
+    $stmt->execute();
+    $stmt->close();
+    $checkStmt->close();
+    header("Location: ?page=" . $page);
+    exit();
 }
+
+// Fetch content for editing if edit_id is set
+$editContent = null;
+if (isset($_GET['edit_id'])) {
+    $edit_id = (int)$_GET['edit_id'];
+    $editStmt = $conn->prepare("SELECT * FROM site_content WHERE id = ? LIMIT 1");
+    $editStmt->bind_param("i", $edit_id);
+    $editStmt->execute();
+    $editResult = $editStmt->get_result();
+    $editContent = $editResult->fetch_assoc();
+    $editStmt->close();
+}
+
+// Fetch content with pagination (temporarily remove is_active filter)
+$selectedPage = isset($_GET['page']) ? $conn->real_escape_string($_GET['page']) : 'welcome';
+$stmt = $conn->prepare("SELECT * FROM site_content WHERE page = ? ORDER BY id DESC LIMIT ? OFFSET ?");
+$stmt->bind_param("sii", $selectedPage, $limit, $offset);
+$stmt->execute();
+$result = $stmt->get_result();
+$contentList = $result->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+
+// Count total items for pagination (temporarily remove is_active filter)
+$totalStmt = $conn->prepare("SELECT COUNT(*) as total FROM site_content WHERE page = ?");
+$totalStmt->bind_param("s", $selectedPage);
+$totalStmt->execute();
+$totalResult = $totalStmt->get_result();
+$totalRows = $totalResult->fetch_assoc()['total'];
+$totalPages = ceil($totalRows / $limit);
+$totalStmt->close();
+
 $conn->close();
+
+// Format page title
+$formattedPage = ucwords(str_replace("_", " ", $selectedPage));
+$autoCaption = $captionMap[$selectedPage] ?? strtolower($selectedPage);
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FREDY HERBAL | Content Management</title>
+    <title>Edit Content | Fredy Herbal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="icon" href="../assets/admin.png" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
@@ -93,161 +133,157 @@ $conn->close();
                         primaryLight: '#dcfce7',
                         primaryDark: '#15803d',
                         secondary: '#a16207',
-                        deepBlue: '#01017f',
                     },
                     fontFamily: {
                         sans: ['Poppins', 'sans-serif'],
                         serif: ['Playfair Display', 'serif'],
-                    },
-                },
-            },
-        };
+                    }
+                }
+            }
+        }
     </script>
     <style>
         .herb-bg {
             background: radial-gradient(circle at center, #f0fdf4 0%, #dcfce7 70%, #bbf7d0 100%);
         }
+
         .leaf-decoration {
             position: absolute;
             width: 100px;
             height: 100px;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z'/%3E%3Cpath d='M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%2316a34a' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z'/%3E%3Cpath d='M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12'/%3E%3C/svg%3E");
             background-size: contain;
             background-repeat: no-repeat;
-            opacity: 0.1;
+            opacity: 0.08;
         }
     </style>
 </head>
 
-<body class="herb-bg min-h-screen p-6 relative">
+<body class="herb-bg min-h-screen relative p-4 md:p-8 font-sans">
     <div class="leaf-decoration top-10 left-10"></div>
     <div class="leaf-decoration bottom-10 right-10 rotate-45"></div>
 
-    <div class="max-w-5xl mx-auto bg-white p-8 rounded-2xl shadow-xl relative z-10">
-        <h2 class="text-3xl font-serif font-bold text-center text-primary mb-6">
-            Content Management
-        </h2>
+    <div class="max-w-6xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-10 relative z-10">
+        <h1 class="text-3xl font-serif text-primary text-center mb-6">Content Management</h1>
+        <div class="flex flex-col md:flex-row gap-6">
 
-        <a href="index.php" class="inline-flex items-center text-secondary font-semibold hover:text-secondaryDark mb-6">
-            <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
-        </a>
+            <!-- Sidebar -->
+            <aside class="w-full md:w-1/4 bg-primaryLight rounded-xl p-5 shadow-md">
+                <h3 class="text-xl font-semibold text-primary mb-4">Pages</h3>
+                <ul class="space-y-2">
+                    <li><a href="?page=welcome" class="block px-3 py-2 rounded-md <?php echo $selectedPage == 'welcome' ? 'bg-primary text-white' : 'hover:bg-green-100 text-gray-700'; ?>">Welcome</a></li>
+                    <li><a href="?page=profile" class="block px-3 py-2 rounded-md <?php echo $selectedPage == 'profile' ? 'bg-primary text-white' : 'hover:bg-green-100 text-gray-700'; ?>">Profile</a></li> 
+                    <li><a href="?page=about" class="block px-3 py-2 rounded-md <?php echo $selectedPage == 'about' ? 'bg-primary text-white' : 'hover:bg-green-100 text-gray-700'; ?>">About Us</a></li>
+                    <li><a href="?page=safe_cards" class="block px-3 py-2 rounded-md <?php echo $selectedPage == 'safe_cards' ? 'bg-primary text-white' : 'hover:bg-green-100 text-gray-700'; ?>">Safe & Efficient Cards</a></li>
+                    <li class="pt-8">
+                        <a href="index.php" class="inline-flex items-center text-secondary font-semibold hover:text-secondaryDark">
+                            <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                        </a>
+                    </li>
+                </ul>
+            </aside>
 
-        <!-- Toggle to show/hide inactive content -->
-        <a href="?show_inactive=1" class="text-secondary hover:text-secondaryDark mb-6 inline-block <?php echo isset($_GET['show_inactive']) && $_GET['show_inactive'] == 1 ? 'hidden' : ''; ?>">Show Inactive Content</a>
-        <a href="?show_inactive=0" class="text-secondary hover:text-secondaryDark mb-6 inline-block <?php echo !isset($_GET['show_inactive']) || $_GET['show_inactive'] == 0 ? 'hidden' : ''; ?>">Hide Inactive Content</a>
+            <!-- Main Content -->
+            <main class="flex-1">
+                <h2 class="text-xl font-serif text-primary mb-4 flex items-center">
+                    <i class="fas fa-edit text-secondary mr-2"></i>
+                    <?php echo $editContent ? 'Update' : 'Edit'; ?> <?php echo $formattedPage; ?> Page
+                </h2>
 
-        <?php
-        // Default content for welcome.php (based on welcome.php)
-        $welcomeSections = [
-            'welcome_section' => [
-                'page' => 'welcome',
-                'fields' => [
-                    'caption' => ['label' => 'Welcome Header', 'default' => 'Welcome!'],
-                    'message' => ['label' => 'Welcome Intro', 'default' => 'This is the official website of Fredy Herbal. We are a Herbal Medicine Treatment Company registered in Ghana as AGBENYEGA HERBAL CONCEPT since 2013.'],
-                    'excerpt' => ['label' => 'Welcome Slogan', 'default' => 'We target the root cause, go beyond the cure, and restore your body system.']
-                ]
-            ]
-        ];
+                <!-- Edit Form -->
+                <form method="post" class="bg-green-50 rounded-xl p-6 shadow-md space-y-4">
+                    <input type="hidden" name="page" value="<?php echo $selectedPage; ?>">
+                    <?php if ($editContent): ?>
+                        <input type="hidden" name="edit_id" value="<?php echo $editContent['id']; ?>">
+                    <?php endif; ?>
 
-        // Content sections for homepage.php
-        $homepageSections = [
-            'founder_section' => [
-                'page' => 'homepage',
-                'fields' => [
-                    'content' => ['label' => 'Founder Intro', 'default' => 'Meet Dr. Frederick, our visionary founder and lead herbal physician, blending centuries-old Ghanaian wisdom with modern science. 20+ years of clinical herbal practice. Published researcher in phytotherapy. Community healer across Ghanaian regions.'],
-                    'excerpt' => ['label' => 'Founder Summary', 'default' => 'Summary of Dr. Frederick\'s expertise.']
-                ]
-            ],
-            'traditional_section' => [
-                'page' => 'homepage',
-                'fields' => [
-                    'content' => ['label' => 'Traditional Medicine', 'default' => 'Our formulas are based on centuries-old Ghanaian herbal traditions passed down through generations.'],
-                    'excerpt' => ['label' => 'Traditional Summary', 'default' => 'Heritage-based herbal solutions.']
-                ]
-            ],
-            'modern_section' => [
-                'page' => 'homepage',
-                'fields' => [
-                    'content' => ['label' => 'Modern Validation', 'default' => 'We combine traditional knowledge with modern scientific research for proven effectiveness.'],
-                    'excerpt' => ['label' => 'Modern Summary', 'default' => 'Science-backed herbal remedies.']
-                ]
-            ],
-            'ingredients_section' => [
-                'page' => 'homepage',
-                'fields' => [
-                    'content' => ['label' => 'Pure Ingredients', 'default' => 'We use only 100% natural, organic ingredients with no additives or preservatives.'],
-                    'excerpt' => ['label' => 'Ingredients Summary', 'default' => 'Natural and pure ingredients.']
-                ]
-            ],
-            'care_section' => [
-                'page' => 'homepage',
-                'fields' => [
-                    'content' => ['label' => 'Personalized Care', 'default' => 'Each client receives a personalized treatment plan tailored to their specific health needs.'],
-                    'excerpt' => ['label' => 'Care Summary', 'default' => 'Tailored health solutions.']
-                ]
-            ],
-            'sourcing_section' => [
-                'page' => 'homepage',
-                'fields' => [
-                    'content' => ['label' => 'Sustainable Sourcing', 'default' => 'We ethically source all ingredients with respect for nature and local communities.'],
-                    'excerpt' => ['label' => 'Sourcing Summary', 'default' => 'Ethical and sustainable sourcing.']
-                ]
-            ],
-            'results_section' => [
-                'page' => 'homepage',
-                'fields' => [
-                    'content' => ['label' => 'Proven Results', 'default' => 'Over a decade of success stories and satisfied clients across West Africa.'],
-                    'excerpt' => ['label' => 'Results Summary', 'default' => 'Decade-long success stories.']
-                ]
-            ]
-        ];
+                    <div>
+                        <label class="block text-sm text-gray-700 mb-1">Caption (Auto)</label>
+                        <input type="text" name="caption" value="<?php echo $editContent ? htmlspecialchars($editContent['caption']) : $autoCaption; ?>" readonly
+                            class="w-full border rounded-lg px-4 py-2 bg-gray-100 text-gray-600 cursor-not-allowed">
+                    </div>
 
-        $allSections = array_merge($welcomeSections, $homepageSections);
+                    <div>
+                        <label class="block text-sm text-gray-700 mb-1">Header</label>
+                        <input type="text" name="header" placeholder="Enter header title" value="<?php echo $editContent ? htmlspecialchars($editContent['header']) : ''; ?>"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primaryLight">
+                    </div>
 
-        foreach ($allSections as $section => $details) {
-            // Only display sections with active content unless inactive is shown
-            if (!isset($pageContent[$details['page']][$section]) && !$showInactive) {
-                continue;
-            }
-            echo '<div class="border border-gray-200 rounded-xl p-6 bg-primaryLight mb-6">';
-            echo '<h3 class="text-2xl font-serif font-semibold text-primary mb-4 capitalize">' . htmlspecialchars($details['page']) . ' Page - ' . $section . '</h3>';
-            echo '<div class="grid grid-cols-1 gap-4">';
-            foreach ($details['fields'] as $caption => $field) {
-                $entry = isset($pageContent[$details['page']][$section][$caption]) ? $pageContent[$details['page']][$section][$caption] : null;
-                $defaultContent = $field['default'] ?? '';
-                $displayContent = $entry ? $entry['content'] : ($showInactive && !$entry ? $defaultContent : '');
-                echo '<form method="post" class="space-y-4">';
-                echo '<label class="block text-sm font-medium text-gray-700">Edit ' . htmlspecialchars($field['label']) . '</label>';
-                echo '<textarea name="content" rows="4" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-primary focus:border-primary transition" placeholder="Enter new text here">' . htmlspecialchars($displayContent) . '</textarea>';
-                echo '<textarea name="excerpt" rows="2" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-primary focus:border-primary transition" placeholder="Enter excerpt (optional)">' . htmlspecialchars($entry['excerpt'] ?? '') . '</textarea>';
-                echo '<label class="inline-flex items-center"><input type="checkbox" name="is_active" value="1" ' . ($entry && $entry['is_active'] ? 'checked' : '') . ' class="mr-2"> Active</label>';
-                echo '<input type="hidden" name="section" value="' . htmlspecialchars($section) . '">';
-                echo '<input type="hidden" name="page" value="' . htmlspecialchars($details['page']) . '">';
-                echo '<input type="hidden" name="caption" value="' . htmlspecialchars($caption) . '">';
-                echo '<button type="submit" class="w-full bg-primary text-white py-2 rounded-full text-md font-semibold hover:bg-primaryDark transition-transform transform hover:scale-105 shadow-lg">Save</button>';
-                if ($entry) {
-                    echo '<a href="?delete=1&id=' . htmlspecialchars($entry['id']) . '" class="text-red-600 hover:text-red-800 mt-2 inline-block" onclick="return confirm(\'Are you sure you want to deactivate this content?\');">Deactivate</a>';
-                }
-                echo '<p class="text-sm text-gray-500">Last Updated: ' . ($entry ? date('Y-m-d H:i', strtotime($entry['last_updated'])) : 'N/A') . '</p>';
-                echo '</form>';
-            }
-            echo '</div>';
-            echo '</div>';
-        }
-        ?>
+                    <div>
+                        <label class="block text-sm text-gray-700 mb-1">Content</label>
+                        <textarea name="content" rows="4"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primaryLight"
+                            placeholder="Enter content here"><?php echo $editContent ? htmlspecialchars($editContent['content']) : ''; ?></textarea>
+                    </div>
 
+                    <div>
+                        <label class="block text-sm text-gray-700 mb-1">Excerpt</label>
+                        <textarea name="excerpt" rows="2"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primaryLight"
+                            placeholder="Enter short excerpt here"><?php echo $editContent ? htmlspecialchars($editContent['excerpt']) : ''; ?></textarea>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button type="submit" class="flex-1 bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primaryDark transition">
+                            <i class="fas fa-save mr-2"></i> <?php echo $editContent ? 'Update' : 'Save'; ?> Content
+                        </button>
+                        <?php if ($editContent): ?>
+                            <a href="?page=<?php echo $selectedPage; ?>" class="px-6 bg-gray-400 text-white py-3 rounded-lg font-semibold hover:bg-gray-500 transition inline-flex items-center justify-center">
+                                Cancel
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+
+                <!-- Existing Content -->
+                <h3 class="text-xl font-semibold text-primary mt-8 mb-4">Current <?php echo $formattedPage; ?> Content</h3>
+                <div class="grid gap-4 md:grid-cols-2">
+                    <?php if ($contentList): ?>
+                        <?php foreach ($contentList as $item): ?>
+                            <div class="p-4 bg-white border rounded-xl shadow-sm">
+                                <h4 class="font-semibold text-gray-800"><?php echo htmlspecialchars($item['caption']); ?></h4>
+                                <p class="text-gray-600 text-sm"><?php echo htmlspecialchars($item['header']); ?></p>
+                                <p class="text-gray-600 mt-2 text-sm">
+                                    <?php echo htmlspecialchars(substr($item['content'], 0, 80)) . (strlen($item['content']) > 80 ? '...' : ''); ?>
+                                </p>
+                                <p class="text-gray-600 mt-1 text-sm">
+                                    Excerpt: <?php echo htmlspecialchars($item['excerpt'] ?? 'N/A'); ?>
+                                </p>
+                                <div class="mt-3 flex gap-2">
+                                    <a href="?page=<?php echo $selectedPage; ?>&edit_id=<?php echo $item['id']; ?>"
+                                        class="inline-block text-blue-600 hover:text-blue-800 text-sm">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <a href="?delete=1&id=<?php echo $item['id']; ?>&page=<?php echo $selectedPage; ?>"
+                                        class="inline-block text-red-600 hover:text-red-800 text-sm"
+                                        onclick="return confirm('Delete this content permanently?')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <p class="text-gray-500">No content available for this page.</p>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Pagination -->
+                <?php if ($totalPages > 1): ?>
+                    <div class="mt-4 flex justify-center space-x-2">
+                        <?php if ($page > 1): ?>
+                            <a href="?page=<?php echo $selectedPage; ?>&page_num=<?php echo $page - 1; ?>" class="px-3 py-1 bg-primary text-white rounded-md hover:bg-primaryDark">Prev</a>
+                        <?php endif; ?>
+                        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                            <a href="?page=<?php echo $selectedPage; ?>&page_num=<?php echo $i; ?>" class="px-3 py-1 <?php echo $i == $page ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'; ?> rounded-md"><?php echo $i; ?></a>
+                        <?php endfor; ?>
+                        <?php if ($page < $totalPages): ?>
+                            <a href="?page=<?php echo $selectedPage; ?>&page_num=<?php echo $page + 1; ?>" class="px-3 py-1 bg-primary text-white rounded-md hover:bg-primaryDark">Next</a>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </main>
+        </div>
     </div>
 </body>
 
-<script>
-    // Toast Notification
-    function showToast(message) {
-        const toast = document.createElement('div');
-        toast.className = 'fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-lg shadow-lg transition-opacity duration-300';
-        toast.textContent = message;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.classList.add('opacity-0'), 3000);
-        setTimeout(() => toast.remove(), 3300);
-    }
-</script>
 </html>

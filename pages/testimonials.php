@@ -11,7 +11,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['name'], $_POST['messag
 
     if (!empty($_FILES['photo']['name'])) {
         $targetDir = "../uploads/";
-        if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
+        if (!is_dir($targetDir))
+            mkdir($targetDir, 0777, true);
 
         $fileName = time() . "_" . basename($_FILES["photo"]["name"]);
         $targetFile = $targetDir . $fileName;
@@ -20,19 +21,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['name'], $_POST['messag
             $photoPath = "uploads/" . $fileName;
         }
     }
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['name'], $_POST['message'])) {
-    $name = trim($_POST['name']);
-    $topic = trim($_POST['topic']);
-    $message = trim($_POST['message']);
-    $photoPath = null;
+    if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['name'], $_POST['message'])) {
+        $name = trim($_POST['name']);
+        $topic = trim($_POST['topic']);
+        $message = trim($_POST['message']);
+        $photoPath = null;
 
-    // Check if photo was uploaded
-    if (empty($_FILES['photo']['name'])) {
-        die("Error: Photo is required.");
-    }
+        // Check if photo was uploaded
+        if (empty($_FILES['photo']['name'])) {
+            die("Error: Photo is required.");
+        }
 
-    $targetDir = "../uploads/";
-    if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
+        $targetDir = "../uploads/";
+        if (!is_dir($targetDir))
+            mkdir($targetDir, 0777, true);
 
         $fileName = time() . "_" . basename($_FILES["photo"]["name"]);
         $targetFile = $targetDir . $fileName;
@@ -78,32 +80,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['name'], $_POST['messag
                     $message = htmlspecialchars($row['message']);
                     $photo = !empty($row['photo']) ? "../" . $row['photo'] : "../uploads/default_avatar.png";
                     ?>
-                    <div class="group bg-primary/5 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 transform hover:-translate-y-1">
+                    <div
+                        class="group bg-primary/5 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 transform hover:-translate-y-1">
                         <div class="relative">
-                            <div class="absolute -top-2 -right-2 text-primary opacity-40 group-hover:opacity-80 transition-opacity duration-300">
+                            <div
+                                class="absolute -top-2 -right-2 text-primary opacity-40 group-hover:opacity-80 transition-opacity duration-300">
                                 <i class="fas fa-quote-right text-4xl"></i>
                             </div>
                         </div>
                         <div class="flex items-center mb-6">
                             <div class="relative">
-                                <img src="<?php echo $photo; ?>" 
-                                     alt="<?php echo $name; ?>" 
-                                     class="w-16 h-16 rounded-full bg-primaryLight border-2 border-primary/20 object-cover group-hover:border-primary transition-colors duration-300">
-                                <div class="absolute -bottom-1 -right-1 bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center">
+                                <img src="<?php echo $photo; ?>" alt="<?php echo $name; ?>"
+                                    class="w-16 h-16 rounded-full bg-primaryLight border-2 border-primary/20 object-cover group-hover:border-primary transition-colors duration-300">
+                                <div
+                                    class="absolute -bottom-1 -right-1 bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center">
                                     <i class="fas fa-check text-xs"></i>
                                 </div>
                             </div>
                             <div class="ml-4">
                                 <h4 class="text-xl font-bold text-gray-800"><?php echo $name; ?></h4>
-                                <p class="text-primary font-medium"><span class="text-sm text-gray-500">Health Focus: </span><?php echo $topic; ?></p>
+                                <p class="text-primary font-medium"><span class="text-sm text-gray-500">Health Focus:
+                                    </span><?php echo $topic; ?></p>
                             </div>
                         </div>
                         <div class="flex mb-4 text-yellow-400">
-                            <?php for($i = 0; $i < 5; $i++): ?>
+                            <?php for ($i = 0; $i < 5; $i++): ?>
                                 <i class="fas fa-star"></i>
                             <?php endfor; ?>
                         </div>
-                        <p class="text-gray-600 italic leading-relaxed line-clamp-4 group-hover:line-clamp-none transition-all duration-300">
+                        <p
+                            class="text-gray-600 italic leading-relaxed line-clamp-4 group-hover:line-clamp-none transition-all duration-300">
                             "<?php echo $message; ?>"
                         </p>
                     </div>
@@ -120,71 +126,76 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['name'], $_POST['messag
                 <?php
             }
             ?>
-            </div>
         </div>
+    </div>
 
-        <!-- Testimonial Form -->
-        <div class="max-w-3xl mx-auto">
-            <div class="bg-white p-8 mx-4 md:mx-0 rounded-2xl bg-primary/5 shadow-xl animate-on-scroll relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-32 h-32 transform translate-x-16 -translate-y-16">
-                    <div class="absolute inset-0 bg-primary rounded-full"></div>
-                </div>
-                
-                <h3 class="text-3xl font-serif font-bold mb-6 text-primary relative">
-                    <span class="block text-sm uppercase tracking-wider text-secondary font-sans mb-2">We Value Your Feedback</span>
-                    Share Your Experience
-                </h3>
+    <!-- Testimonial Form -->
+    <div class="max-w-3xl mx-auto">
+        <div
+            class="bg-white p-8 mx-4 md:mx-0 rounded-2xl bg-primary/5 shadow-xl animate-on-scroll relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 transform translate-x-16 -translate-y-16">
+                <div class="absolute inset-0 bg-primary rounded-full"></div>
+            </div>
 
-                <form id="upload-testimonial" class="space-y-6 relative" method="post" enctype="multipart/form-data">
-                    <div class="grid md:grid-cols-2 gap-6">
-                        <div class="relative">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Your Name</label>
-                            <input type="text" name="name" required placeholder="Enter your full name" 
-                                class="w-full px-4 py-3 rounded-lg border-2 border-gray-100 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none" />
-                        </div>
-                        <div class="relative">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Health Focus</label>
-                            <input type="text" name="topic" required placeholder="e.g., Arthritis Relief" 
-                                class="w-full px-4 py-3 rounded-lg border-2 border-gray-100 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none" />
-                        </div>
-                    </div>
+            <h3 class="text-3xl font-serif font-bold mb-6 text-primary relative">
+                <span class="block text-sm uppercase tracking-wider text-secondary font-sans mb-2">We Value Your
+                    Feedback</span>
+                Share Your Experience
+            </h3>
 
+            <form id="upload-testimonial" class="space-y-6 relative" method="post" enctype="multipart/form-data">
+                <div class="grid md:grid-cols-2 gap-6">
                     <div class="relative">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Your Testimonial</label>
-                        <textarea name="message" required rows="4" placeholder="Share your experience with our treatments..." 
-                            class="w-full px-4 py-3 rounded-lg border-2 border-gray-100 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none resize-none"></textarea>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Your Name</label>
+                        <input type="text" name="name" required placeholder="Enter your full name"
+                            class="w-full px-4 py-3 rounded-lg border-2 border-gray-100 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none" />
                     </div>
-
                     <div class="relative">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Your Photo</label>
-                        <div class="relative group">
-                            <input type="file" name="photo" accept="image/*" id="photo-upload" class="hidden" required />
-                            <label for="photo-upload" class="flex items-center justify-center w-full px-4 py-3 rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 cursor-pointer transition-all duration-200 group-hover:border-primary">
-                                <i class="fas fa-camera mr-2 text-primary"></i>
-                                <span class="text-primary font-medium">Choose a Photo</span>
-                            </label>
-                            <div id="file-preview" class="mt-2 text-sm text-gray-500 hidden">
-                                <i class="fas fa-image mr-1"></i>
-                                <span class="file-name"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button type="submit" 
-                        class="inline-flex items-center justify-center w-full md:w-auto px-8 py-4 bg-primary hover:bg-primaryDark text-white rounded-full text-lg font-semibold transition-all duration-200 transform hover:scale-105 hover:shadow-lg group">
-                        <span class="mr-2">Submit Testimonial</span>
-                        <i class="fas fa-paper-plane transform group-hover:translate-x-1 transition-transform"></i>
-                    </button>
-                </form>
-
-                <div id="submission-message" class="hidden mt-6 p-4 bg-green-50 border border-green-200 text-green-800 rounded-lg text-center animate-fade-in">
-                    <div class="flex items-center justify-center">
-                        <i class="fas fa-check-circle text-green-500 mr-2 text-xl"></i>
-                        <p>Thank you for your submission! Your testimonial is awaiting approval.</p>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Health Focus</label>
+                        <input type="text" name="topic" required placeholder="e.g., Arthritis Relief"
+                            class="w-full px-4 py-3 rounded-lg border-2 border-gray-100 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none" />
                     </div>
                 </div>
+
+                <div class="relative">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Your Testimonial</label>
+                    <textarea name="message" required rows="4"
+                        placeholder="Share your experience with our treatments..."
+                        class="w-full px-4 py-3 rounded-lg border-2 border-gray-100 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none resize-none"></textarea>
+                </div>
+
+                <div class="relative">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Your Photo</label>
+                    <div class="relative group">
+                        <input type="file" name="photo" accept="image/*" id="photo-upload" class="hidden" required />
+                        <label for="photo-upload"
+                            class="flex items-center justify-center w-full px-4 py-3 rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 cursor-pointer transition-all duration-200 group-hover:border-primary">
+                            <i class="fas fa-camera mr-2 text-primary"></i>
+                            <span class="text-primary font-medium">Choose a Photo</span>
+                        </label>
+                        <div id="file-preview" class="mt-2 text-sm text-gray-500 hidden">
+                            <i class="fas fa-image mr-1"></i>
+                            <span class="file-name"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit"
+                    class="inline-flex items-center justify-center w-full md:w-auto px-8 py-4 bg-primary hover:bg-primaryDark text-white rounded-full text-lg font-semibold transition-all duration-200 transform hover:scale-105 hover:shadow-lg group">
+                    <span class="mr-2">Submit Testimonial</span>
+                    <i class="fas fa-paper-plane transform group-hover:translate-x-1 transition-transform"></i>
+                </button>
+            </form>
+
+            <div id="submission-message"
+                class="hidden mt-6 p-4 bg-green-50 border border-green-200 text-green-800 rounded-lg text-center animate-fade-in">
+                <div class="flex items-center justify-center">
+                    <i class="fas fa-check-circle text-green-500 mr-2 text-xl"></i>
+                    <p>Thank you for your submission! Your testimonial is awaiting approval.</p>
+                </div>
             </div>
         </div>
+    </div>
     </div>
 </section>
 
@@ -208,12 +219,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['name'], $_POST['messag
         const filePreview = document.getElementById('file-preview');
         const fileName = filePreview.querySelector('.file-name');
 
-        fileInput.addEventListener('change', function() {
+        fileInput.addEventListener('change', function () {
             if (this.files && this.files[0]) {
                 const file = this.files[0];
                 fileName.textContent = file.name;
                 filePreview.classList.remove('hidden');
-                
+
                 // Show file size
                 const size = (file.size / 1024 / 1024).toFixed(2);
                 fileName.textContent = `${file.name} (${size}MB)`;

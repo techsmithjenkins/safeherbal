@@ -23,12 +23,34 @@
                 <img src="<?php echo $imageUrl; ?>" alt="Dr. Frederick" class="rounded-2xl shadow-xl">
             </div>
             <div class="lg:w-1/2 animate-on-scroll">
-                <p class="text-lg text-gray-700 mb-6 leading-relaxed">Founded in 2013 as AGBENYEGA HERBAL CONCEPT, we've
-                    dedicated ourselves to harnessing nature's healing power to help people achieve optimal health. Our
-                    journey began in Ghana with traditional herbal knowledge passed down through generations.</p>
-                <p class="text-lg text-gray-700 mb-8 leading-relaxed">Today, we combine this ancestral wisdom with
-                    modern research to create effective, natural solutions for a wide range of health concerns. Our
-                    commitment is to purity, potency, and your wellness journey.</p>
+                <?php
+                // Function to get About content from DB
+                function getAboutContent($conn)
+                {
+                    $default = "Founded in 2013 as AGBENYEGA HERBAL CONCEPT, we've
+        dedicated ourselves to harnessing nature's healing power to help people achieve optimal health. Our
+        journey began in Ghana with traditional herbal knowledge passed down through generations.<br><br>
+        Today, we combine this ancestral wisdom with modern research to create effective, natural solutions for a wide range of health concerns. Our
+        commitment is to purity, potency, and your wellness journey.";
+
+                    $stmt = $conn->prepare("SELECT content FROM site_content WHERE caption = 'about' LIMIT 1");
+                    if ($stmt) {
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+                        if ($row = $result->fetch_assoc()) {
+                            return !empty($row["content"]) ? $row["content"] : $default;
+                        }
+                    }
+                    return $default;
+                }
+
+                $aboutContent = getAboutContent($conn);
+                ?>
+
+                <div class="text-lg text-gray-700 mb-6 leading-relaxed">
+                    <?php echo nl2br(htmlspecialchars($aboutContent, ENT_QUOTES, 'UTF-8')); ?>
+                </div>
+
                 <div class="space-y-4">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center">

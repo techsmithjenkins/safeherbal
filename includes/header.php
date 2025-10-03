@@ -5,6 +5,7 @@ include "../config/config.php";
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -34,14 +35,16 @@ include "../config/config.php";
                 }
             }
         };
+
     </script>
     <style>
         /* Prevent horizontal scrolling */
         * {
             box-sizing: border-box;
         }
-        
-        html, body {
+
+        html,
+        body {
             overflow-x: hidden;
             max-width: 100%;
         }
@@ -199,6 +202,7 @@ include "../config/config.php";
         });
     </script>
 </head>
+
 <body class="font-sans bg-gray-50">
     <header class="sticky-header bg-deepBlue py-1" style="font-family:'Times New Roman', Times, serif;">
         <div class="container mx-auto px-4">
@@ -207,19 +211,28 @@ include "../config/config.php";
                 <div class="flex items-center">
                     <span class="p-2 rounded-md bg-white cursor-pointer">
                         <a href="../pages/welcome.php" class="flex items-center text-gray-900">
-                            <p class="ml-2 text-2xl font-extrabold" style="color: #01932f;font-family:Arial;">FREDY HERBAL</p>
+                            <span class="ml-2 text-2xl font-extrabold"
+                                style="color:#01932f;font-family:Arial; white-space:nowrap;">
+                                FREDY HERBAL
+                            </span>
                         </a>
                     </span>
                 </div>
-                
+
                 <!-- Desktop Navigation -->
-                <nav class="hidden md:flex flex-wrap justify-center gap-1 md:gap-0">
-                    <a href="../pages/homepage.php" class="nav-link text-white font-bold text-sm md:text-base">ABOUT US</a>
-                    <a href="../pages/homepage.php#services" class="nav-link text-white font-bold text-sm md:text-base">OUR SERVICES</a>
-                    <a href="../pages/homepage.php#edge" class="nav-link text-white font-bold text-sm md:text-base">SAFE & EFFICIENT</a>
-                    <a href="../pages/homepage.php#testimonials" class="nav-link text-white font-bold text-sm md:text-base">OUR PATIENTS SAY...</a>
-                    <a href="../pages/homepage.php#updates" class="nav-link text-white font-bold text-sm md:text-base">RECENT UPDATES</a>
-                    <a href="../pages/homepage.php#contact" class="nav-link text-white font-bold text-sm md:text-base">CONTACT US</a>
+                <nav class="hidden md:flex justify-center flex-nowrap gap-1 md:gap-0">
+                    <a href="../pages/homepage.php" class="nav-link text-white font-bold text-sm md:text-base">ABOUT
+                        US</a>
+                    <a href="../pages/homepage.php#services"
+                        class="nav-link text-white font-bold text-sm md:text-base">OUR SERVICES</a>
+                    <a href="../pages/homepage.php#edge" class="nav-link text-white font-bold text-sm md:text-base">SAFE
+                        & EFFICIENT</a>
+                    <a href="../pages/homepage.php#testimonials"
+                        class="nav-link text-white font-bold text-sm md:text-base">OUR PATIENTS SAY...</a>
+                    <a href="../pages/homepage.php#updates"
+                        class="nav-link text-white font-bold text-sm md:text-base">RECENT UPDATES</a>
+                    <a href="../pages/homepage.php#contact"
+                        class="nav-link text-white font-bold text-sm md:text-base">CONTACT US</a>
                     <?php if (isset($_SESSION["admin_id"])): ?>
                         <!-- <a href="../admin/index.php" class="nav-link text-white font-bold text-sm md:text-base">ADMIN PANEL</a> -->
                     <?php endif; ?>
@@ -231,17 +244,22 @@ include "../config/config.php";
                 </button>
             </div>
         </div>
-        
+
         <!-- Mobile Dropdown Menu -->
         <div id="mobile-menu"
-            class="absolute left-0 top-full w-full bg-deepBlue z-[2000] flex flex-col items-center py-4 transition-all duration-300 ease-in-out invisible opacity-0 rounded-b-2xl shadow-lg md:hidden">
+            class="absolute left-0 top-full w-full bg-deepBlue z-[2000] flex flex-col items-center py-8 transition-all duration-300 ease-in-out invisible opacity-0 rounded-b-2xl shadow-lg md:hidden">
             <nav class="flex flex-col gap-2 text-center w-full px-6">
                 <a href="../pages/homepage.php" class="nav-link text-white font-bold text-lg py-2">ABOUT US</a>
-                <a href="../pages/homepage.php#services" class="nav-link text-white font-bold text-lg py-2">OUR SERVICES</a>
-                <a href="../pages/homepage.php#edge" class="nav-link text-white font-bold text-lg py-2">SAFE & EFFICIENT</a>
-                <a href="../pages/homepage.php#testimonials" class="nav-link text-white font-bold text-lg py-2">OUR PATIENTS SAY...</a>
-                <a href="../pages/homepage.php#updates" class="nav-link text-white font-bold text-lg py-2">RECENT UPDATES</a>
-                <a href="../pages/homepage.php#contact" class="nav-link text-white font-bold text-lg py-2">CONTACT US</a>
+                <a href="../pages/homepage.php#services" class="nav-link text-white font-bold text-lg py-2">OUR
+                    SERVICES</a>
+                <a href="../pages/homepage.php#edge" class="nav-link text-white font-bold text-lg py-2">SAFE &
+                    EFFICIENT</a>
+                <a href="../pages/homepage.php#testimonials" class="nav-link text-white font-bold text-lg py-2">OUR
+                    PATIENTS SAY...</a>
+                <a href="../pages/homepage.php#updates" class="nav-link text-white font-bold text-lg py-2">RECENT
+                    UPDATES</a>
+                <a href="../pages/homepage.php#contact" class="nav-link text-white font-bold text-lg py-2">CONTACT
+                    US</a>
                 <?php if (isset($_SESSION["admin_id"])): ?>
                     <!-- <a href="../admin/index.php" class="nav-link text-white font-bold text-lg py-2">ADMIN PANEL</a> -->
                 <?php endif; ?>
@@ -250,4 +268,5 @@ include "../config/config.php";
     </header>
     <main class="container mx-auto p-4"></main>
 </body>
+
 </html>

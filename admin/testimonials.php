@@ -62,8 +62,30 @@ if (isset($_GET['delete_id']) && is_numeric($_GET['delete_id'])) {
       },
     };
   </script>
+  <style>
+        .herb-bg {
+            background: radial-gradient(
+                circle at center,
+                #f0fdf4 0%,
+                #dcfce7 70%,
+                #bbf7d0 100%
+            );
+        }
+        .leaf-decoration {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z'/%3E%3Cpath d='M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12'/%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 0.1;
+        }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen p-6">
+<body class="herb-bg min-h-screen min-h-screen p-6">
+    <div class="leaf-decoration top-10 left-10"></div>
+    <div class="leaf-decoration bottom-10 right-10 rotate-45"></div>
+
   <div class="max-w-5xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-xl">
     <h2 class="text-2xl md:text-3xl font-serif font-bold text-center text-primary mb-6">Testimonial Management</h2>
     <a href="index.php" class="inline-flex items-center text-secondary font-semibold hover:text-secondary/80 mb-6 transition-colors">

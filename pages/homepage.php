@@ -279,10 +279,39 @@ include "../config/db_connect.php";
     <div class="leaf-decoration top-12 left-8"></div>
     <div class="leaf-decoration bottom-12 right-8 rotate-45"></div>
     <div class="container mx-auto max-w-6xl flex flex-col lg:flex-row items-center z-10">
+        <?php
+        // Function to get profile content from DB
+        function getProfileContent($conn)
+        {
+            $default = [
+                "header" => "Meet Dr. Frederick",
+                "content" => "Our visionary founder and lead herbal physician, blending centuries-old Ghanaian wisdom with modern science."
+            ];
+
+            $stmt = $conn->prepare("SELECT header, content FROM site_content WHERE caption = 'profile' LIMIT 1");
+            if ($stmt) {
+                $stmt->execute();
+                $result = $stmt->get_result();
+                if ($row = $result->fetch_assoc()) {
+                    return [
+                        "header" => !empty($row["header"]) ? $row["header"] : $default["header"],
+                        "content" => !empty($row["content"]) ? $row["content"] : $default["content"]
+                    ];
+                }
+            }
+            return $default;
+        }
+
+        $profileData = getProfileContent($conn);
+        ?>
+
         <div class="lg:w-1/2 pr-0 lg:pr-12 text-center lg:text-left animate-on-scroll" style="animation-delay: 0.3s">
-            <h2 class="text-5xl md:text-6xl font-bold mb-4 text-primary">Meet Dr. Frederick</h2>
-            <p class="text-xl md:text-2xl mb-6 leading-relaxed text-gray-700">Our visionary founder and lead herbal
-                physician, blending centuries-old Ghanaian wisdom with modern science.</p>
+            <h2 class="text-5xl md:text-6xl font-bold mb-4 text-primary">
+                <?php echo htmlspecialchars($profileData["header"], ENT_QUOTES, 'UTF-8'); ?>
+            </h2>
+            <p class="text-xl md:text-2xl mb-6 leading-relaxed text-gray-700">
+                <?php echo htmlspecialchars($profileData["content"], ENT_QUOTES, 'UTF-8'); ?>
+            </p>
             <ul class="space-y-4 text-gray-700 mb-8">
                 <li class="flex items-start">
                     <i class="fas fa-seedling text-primary text-2xl mr-3"></i>
@@ -298,6 +327,7 @@ include "../config/db_connect.php";
                 </li>
             </ul>
         </div>
+
         <div class="lg:w-1/2 mt-12 lg:mt-0 lg:p-6 relative animate-on-scroll" style="animation-delay: 0.6s">
             <?php
 
